@@ -16,3 +16,28 @@ def test_missing_file_returns_input_error(tmp_path):
     missing = tmp_path / "does_not_exist.py"
 
     assert main(["scan", str(missing)]) == 2
+
+
+def test_scan_directory_counts_files(tmp_path, capsys):
+    (tmp_path / "a.py").write_text("print(1)", encoding="utf-8")
+    (tmp_path / "b.py").write_text("print(2)", encoding="utf-8")
+
+    exit_code = main(["scan", str(tmp_path)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "Scanned 2 file(s)." in output
+
+
+def test_scan_reports_skipped_binary_file(tmp_path, capsys):
+    (tmp_path / "bad.py").write_bytes(b"\x00\x01")
+
+    exit_code = main(["scan", str(tmp_path)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "Skipped 1 file(s): binary" in output
+
+
+def test_scan_empty_directory_returns_two(tmp_path):
+    assert main(["scan", str(tmp_path)]) == 2

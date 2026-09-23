@@ -3,13 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from secureguard.discovery import TooManyFilesError, discover_files
 from secureguard.reader import read_file_safely
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Entry point. Returns a process exit code:
-    0 = read succeeded, 2 = path could not be read, 3 = usage error.
-    """
     if argv is None:
         argv = []
 
@@ -18,11 +16,32 @@ def main(argv: list[str] | None = None) -> int:
         return 3
 
     target = Path(argv[1])
-    content = read_file_safely(target)
 
-    if content is None:
+    if not target.exists():
         print(f"Could not read: {target}")
         return 2
 
-    print(f"Read {len(content)} characters from {target}")
+    try:
+        files = discover_files(target)
+    except TooManyFilesError as exc:
+        print(str(exc))
+        return 2
+
+    read_count = 0
+    skip_counts: dict[str, int] = {}
+
+    for path in files:
+        result = read_file_safely(path)
+        if result.content is not None:
+            read_count += 1
+        else:
+            skip_counts[result.skip_reason] = skip_counts.get(result.skip_reason, 0) + 1
+
+    print(f"Scanned {read_count} file(s).")
+    for reason, count in sorted(skip_counts.items()):
+        print(f"Skipped {count} file(s): {reason}")
+
+    if read_count == 0:
+        return 2
+
     return 0
