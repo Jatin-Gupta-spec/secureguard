@@ -4,7 +4,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from secureguard.discovery import TooManyFilesError, discover_files
+from secureguard.models import ScanSummary
 from secureguard.reader import read_file_safely
+from secureguard.reporters.terminal import format_summary
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,21 +29,20 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc))
         return 2
 
-    read_count = 0
-    skip_counts: dict[str, int] = {}
+    summary = ScanSummary()
 
     for path in files:
         result = read_file_safely(path)
         if result.content is not None:
-            read_count += 1
+            summary.files_scanned += 1
         else:
-            skip_counts[result.skip_reason] = skip_counts.get(result.skip_reason, 0) + 1
+            summary.skip_counts[result.skip_reason] = (
+                summary.skip_counts.get(result.skip_reason, 0) + 1
+            )
 
-    print(f"Scanned {read_count} file(s).")
-    for reason, count in sorted(skip_counts.items()):
-        print(f"Skipped {count} file(s): {reason}")
+    print(format_summary(summary))
 
-    if read_count == 0:
+    if summary.files_scanned == 0:
         return 2
 
     return 0
