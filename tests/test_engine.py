@@ -17,7 +17,7 @@ def test_engine_detects_php_sec_001(tmp_path):
 
 def test_engine_ignores_py_files_for_php_rules(tmp_path):
     py_file = tmp_path / "app.py"
-    py_file.write_text('password = "hunter2"', encoding="utf-8")
+    py_file.write_text("'api_key' => 'sk-real-looking-value';", encoding="utf-8")
 
     summary = run_scan(tmp_path)
 
