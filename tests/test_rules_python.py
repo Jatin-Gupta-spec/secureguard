@@ -41,3 +41,7 @@ def test_placeholder_value_not_flagged():
 
 def test_docstring_not_flagged():
     assert _findings_for("docstring_example.py", "safe") == []
+
+
+def test_realistic_safe_file_has_no_findings():
+    assert _findings_for("realistic_safe_file.py", "safe") == []

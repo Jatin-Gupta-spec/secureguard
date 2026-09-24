@@ -37,3 +37,7 @@ def test_commented_out_not_flagged():
 
 def test_placeholder_value_not_flagged():
     assert _findings_for("placeholder_value.php", "safe") == []
+
+
+def test_realistic_safe_file_has_no_findings():
+    assert _findings_for("realistic_safe_file.php", "safe") == []
