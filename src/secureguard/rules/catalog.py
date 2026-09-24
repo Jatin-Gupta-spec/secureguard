@@ -26,3 +26,16 @@ PHP_SEC_001 = RuleMeta(
         "spec's rule that a keyword match alone never justifies High severity."
     ),
 )
+
+PY_SEC_001 = RuleMeta(
+    rule_id="PY-SEC-001",
+    cwe="CWE-798",
+    default_severity="Medium",
+    default_confidence="Low",
+    rationale=(
+        "Same reasoning as PHP-SEC-001: a credential-like name assigned a "
+        "literal string is suspicious but common in fixtures and local-only "
+        "config, so severity stays Medium and confidence Low rather than "
+        "High on a keyword match alone."
+    ),
+)

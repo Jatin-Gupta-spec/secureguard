@@ -7,13 +7,18 @@ from secureguard.discovery import discover_files
 from secureguard.models import ScanSummary
 from secureguard.reader import read_file_safely
 from secureguard.rules.php_rules import PHP_RULES
+from secureguard.rules.python_rules import PY_RULES
 
 _PHP_SUFFIXES = {".php"}
+_PY_SUFFIXES = {".py"}
 
 
 def _rules_for(path: Path) -> list:
-    if path.suffix.lower() in _PHP_SUFFIXES:
+    suffix = path.suffix.lower()
+    if suffix in _PHP_SUFFIXES:
         return PHP_RULES
+    if suffix in _PY_SUFFIXES:
+        return PY_RULES
     return []
 
 
