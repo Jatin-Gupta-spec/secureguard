@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 
 from secureguard.models import Finding
-from secureguard.rules.catalog import PHP_SEC_001
+from secureguard.rules.catalog import PHP_SEC_001, PHP_SQL_001
 
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 _LINE_COMMENT_RE = re.compile(r"(?://|#).*$")
@@ -23,6 +23,11 @@ _PLACEHOLDER_VALUES = {
     "changeme", "change_me", "xxx", "your_password_here", "yourpassword",
     "placeholder", "example", "todo", "test", "demo", "password", "secret",
 }
+
+_SQL_KEYWORD_RE = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE)\b", re.IGNORECASE)
+_QUOTED_THEN_CONCAT_RE = re.compile(
+    r"(?P<quote>['\"])(?P<text>.*?)(?P=quote)\s*\.\s*(?!\s*['\"])"
+)
 
 
 def _strip_comments(content: str) -> str:
@@ -63,4 +68,32 @@ def find_php_sec_001(content: str, file_path: str) -> list[Finding]:
     return findings
 
 
-PHP_RULES = [find_php_sec_001]
+def find_php_sql_001(content: str, file_path: str) -> list[Finding]:
+    findings: list[Finding] = []
+    cleaned = _strip_comments(content)
+
+    for line_number, line in enumerate(cleaned.splitlines(), start=1):
+        for match in _QUOTED_THEN_CONCAT_RE.finditer(line):
+            sql_text = match.group("text").strip()
+            if not _SQL_KEYWORD_RE.search(sql_text):
+                continue
+
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line_number=line_number,
+                    rule_id=PHP_SQL_001.rule_id,
+                    severity=PHP_SQL_001.default_severity,
+                    confidence=PHP_SQL_001.default_confidence,
+                    cwe=PHP_SQL_001.cwe,
+                    evidence=sql_text,
+                    explanation="SQL string is concatenated with a non-literal expression.",
+                    remediation="Use a parameterized query (prepared statement) instead of string concatenation.",
+                    evidence_key=sql_text.lower()[:50],
+                )
+            )
+
+    return findings
+
+
+PHP_RULES = [find_php_sec_001, find_php_sql_001]

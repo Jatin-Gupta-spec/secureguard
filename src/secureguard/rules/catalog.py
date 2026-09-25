@@ -39,3 +39,30 @@ PY_SEC_001 = RuleMeta(
         "High on a keyword match alone."
     ),
 )
+
+PHP_SQL_001 = RuleMeta(
+    rule_id="PHP-SQL-001",
+    cwe="CWE-89",
+    default_severity="Medium",
+    default_confidence="Low",
+    rationale=(
+        "A SQL-looking string concatenated with a non-literal expression is "
+        "a classic injection shape, but this pattern-matcher cannot prove "
+        "the concatenated value is attacker-controlled, reaches the "
+        "database, or is unsanitized elsewhere - so it stays Medium/Low "
+        "rather than High."
+    ),
+)
+
+PY_SQL_001 = RuleMeta(
+    rule_id="PY-SQL-001",
+    cwe="CWE-89",
+    default_severity="Medium",
+    default_confidence="Low",
+    rationale=(
+        "Same shape as PHP-SQL-001: a dynamically built SQL string passed "
+        "to an execute-like call. Heuristic only - v0.1 does not parse the "
+        "AST, so it can't fully confirm complete data flow, hence "
+        "Medium/Low rather than High."
+    ),
+)
