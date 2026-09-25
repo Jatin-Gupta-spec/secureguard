@@ -1,6 +1,7 @@
 """Data models for SecureGuard's findings and scan results."""
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 
 
@@ -20,6 +21,12 @@ class Finding:
     explanation: str
     remediation: str
     evidence_key: str        # internal stable key, used for ordering
+    fingerprint: str = field(init=False)  # computed - never passed in
+
+    def __post_init__(self) -> None:
+        raw = f"{self.rule_id}|{self.file_path}|{self.evidence_key}"
+        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+        object.__setattr__(self, "fingerprint", digest)
 
 
 @dataclass

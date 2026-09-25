@@ -47,3 +47,26 @@ def test_scan_summary_accumulates():
 
     assert summary.files_scanned == 3
     assert len(summary.findings) == 1
+
+def test_fingerprint_is_deterministic():
+    a = make_finding()
+    b = make_finding()
+    assert a.fingerprint == b.fingerprint
+
+
+def test_fingerprint_ignores_line_number():
+    a = make_finding(line_number=10)
+    b = make_finding(line_number=999)
+    assert a.fingerprint == b.fingerprint
+
+
+def test_fingerprint_differs_for_different_rule():
+    a = make_finding(rule_id="PY-SEC-001")
+    b = make_finding(rule_id="PY-SQL-001")
+    assert a.fingerprint != b.fingerprint
+
+
+def test_fingerprint_differs_for_different_file():
+    a = make_finding(file_path="src/app.py")
+    b = make_finding(file_path="src/other.py")
+    assert a.fingerprint != b.fingerprint
