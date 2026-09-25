@@ -57,10 +57,11 @@ SecureGuard is a regex/pattern-based scanner, not a parser - it has no understan
 of Python or PHP syntax beyond simple text patterns. This is a deliberate v0.1 scope
 decision (AST-based analysis is planned for v0.2+), with real, observable consequences:
 
-- **It can flag its own test code.** `python -m secureguard scan .` against this repo
-  flags lines in `tests/test_engine.py` where test setup code builds a temporary
-  fixture using a string like `'$password = "hunter2";'` - PY-SEC-001 can't
-  distinguish that from a real assignment, because both are just matching text.
+- **v0.2 update:** PY-SEC-001 now uses Python's `ast` module instead of regex, so
+  it correctly ignores string literals that merely look like assignments (e.g. test
+  setup code) - this eliminates the `tests/test_engine.py` false positive noted in
+  the original v0.1 self-scan. PY-SQL-001 and PY-CMD-001, and all three PHP rules,
+  remain regex-based for now.
 - **It can even flag its own rule descriptions.** PY-CMD-001's explanation text
   contains the phrase `shell=True` (because it's *describing* that pattern), which
   the rule then matches against its own source code.
