@@ -1,4 +1,5 @@
 from secureguard.cli import main
+import json
 
 
 def test_scan_existing_file_returns_zero(tmp_path):
@@ -41,3 +42,19 @@ def test_scan_reports_skipped_binary_file(tmp_path, capsys):
 
 def test_scan_empty_directory_returns_two(tmp_path):
     assert main(["scan", str(tmp_path)]) == 2
+
+def test_scan_json_format_returns_valid_json(tmp_path, capsys):
+    sample = tmp_path / "sample.py"
+    sample.write_text('password = "hunter2"', encoding="utf-8")
+
+    exit_code = main(["scan", str(tmp_path), "--format", "json"])
+    output = capsys.readouterr().out
+    parsed = json.loads(output)
+
+    assert exit_code == 0
+    assert parsed["files_scanned"] == 1
+    assert len(parsed["findings"]) == 1
+
+
+def test_unknown_format_returns_usage_error(tmp_path):
+    assert main(["scan", str(tmp_path), "--format", "xml"]) == 3
