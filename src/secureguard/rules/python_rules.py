@@ -1,6 +1,7 @@
 """Python-specific detection rules."""
 from __future__ import annotations
 
+import ast
 import re
 
 from secureguard.models import Finding
@@ -9,11 +10,6 @@ from secureguard.rules.catalog import PY_CMD_001, PY_SEC_001, PY_SQL_001
 
 _TRIPLE_QUOTE_RE = re.compile(r"('''|\"\"\").*?\1", re.DOTALL)
 _LINE_COMMENT_RE = re.compile(r"#.*$")
-
-_ASSIGNMENT_RE = re.compile(
-    r"['\"]?(?P<name>[A-Za-z_][A-Za-z0-9_]*)['\"]?\s*(?::\s*\w+)?\s*[:=]\s*"
-    r"(?P<quote>['\"])(?P<value>.+?)(?P=quote)"
-)
 
 _CREDENTIAL_KEYWORDS = (
     "password", "passwd", "pwd", "secret", "apikey", "api_key",
@@ -42,33 +38,55 @@ def _strip_comments(content: str) -> str:
 
 
 def find_py_sec_001(content: str, file_path: str) -> list[Finding]:
+    """AST-based: only flags real assignment/dict-key shapes, so comments,
+    docstrings, and string literals used as data (e.g. as a function call's
+    argument) are structurally excluded - not just pattern-avoided.
+    """
     findings: list[Finding] = []
-    cleaned = _strip_comments(content)
 
-    for line_number, line in enumerate(cleaned.splitlines(), start=1):
-        for match in _ASSIGNMENT_RE.finditer(line):
-            name = match.group("name")
-            if not any(keyword in name.lower() for keyword in _CREDENTIAL_KEYWORDS):
-                continue
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return findings
 
-            value = match.group("value").strip()
-            if not value or value.lower() in _PLACEHOLDER_VALUES:
-                continue
+    candidates: list[tuple[str, ast.expr, int]] = []
 
-            findings.append(
-                Finding(
-                    file_path=file_path,
-                    line_number=line_number,
-                    rule_id=PY_SEC_001.rule_id,
-                    severity=PY_SEC_001.default_severity,
-                    confidence=PY_SEC_001.default_confidence,
-                    cwe=PY_SEC_001.cwe,
-                    evidence=redact(name),
-                    explanation="Possible hardcoded credential assigned as a literal value.",
-                    remediation="Load this value from an environment variable or secret store instead.",
-                    evidence_key=name.lower(),
-                )
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                candidates.append((node.targets[0].id, node.value, node.lineno))
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name) and node.value is not None:
+                candidates.append((node.target.id, node.value, node.lineno))
+        elif isinstance(node, ast.Dict):
+            for key_node, val_node in zip(node.keys, node.values):
+                if isinstance(key_node, ast.Constant) and isinstance(key_node.value, str):
+                    candidates.append((key_node.value, val_node, val_node.lineno))
+
+    for name, value_node, line_number in candidates:
+        if not any(keyword in name.lower() for keyword in _CREDENTIAL_KEYWORDS):
+            continue
+        if not (isinstance(value_node, ast.Constant) and isinstance(value_node.value, str)):
+            continue
+
+        value = value_node.value.strip()
+        if not value or value.lower() in _PLACEHOLDER_VALUES:
+            continue
+
+        findings.append(
+            Finding(
+                file_path=file_path,
+                line_number=line_number,
+                rule_id=PY_SEC_001.rule_id,
+                severity=PY_SEC_001.default_severity,
+                confidence=PY_SEC_001.default_confidence,
+                cwe=PY_SEC_001.cwe,
+                evidence=redact(name),
+                explanation="Possible hardcoded credential assigned as a literal value.",
+                remediation="Load this value from an environment variable or secret store instead.",
+                evidence_key=name.lower(),
             )
+        )
 
     return findings
 
@@ -146,3 +164,10 @@ def find_py_cmd_001(content: str, file_path: str) -> list[Finding]:
 
 
 PY_RULES = [find_py_sec_001, find_py_sql_001, find_py_cmd_001]
+
+def test_string_literal_in_function_call_not_flagged():
+    """Regression test for the Stage 14 self-scan false positive: a string
+    that merely looks like an assignment, sitting as a function call's
+    argument, must never be treated as a real one."""
+    content = 'some_file.write_text(\'password = "hunter2"\', encoding="utf-8")'
+    assert find_py_sec_001(content, "example.py") == []
