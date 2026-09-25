@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from secureguard.models import Finding
+from secureguard.redaction import redact
 from secureguard.rules.catalog import PHP_CMD_001, PHP_SEC_001, PHP_SQL_001
 
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
@@ -63,7 +64,7 @@ def find_php_sec_001(content: str, file_path: str) -> list[Finding]:
                     severity=PHP_SEC_001.default_severity,
                     confidence=PHP_SEC_001.default_confidence,
                     cwe=PHP_SEC_001.cwe,
-                    evidence=f"{name} = ***redacted***",
+                    evidence=redact(name),
                     explanation="Possible hardcoded credential assigned as a literal value.",
                     remediation="Load this value from an environment variable or secret store instead.",
                     evidence_key=name.lower(),

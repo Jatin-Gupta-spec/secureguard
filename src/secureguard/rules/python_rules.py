@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 
 from secureguard.models import Finding
+from secureguard.redaction import redact
 from secureguard.rules.catalog import PY_CMD_001, PY_SEC_001, PY_SQL_001
 
 _TRIPLE_QUOTE_RE = re.compile(r"('''|\"\"\").*?\1", re.DOTALL)
@@ -62,7 +63,7 @@ def find_py_sec_001(content: str, file_path: str) -> list[Finding]:
                     severity=PY_SEC_001.default_severity,
                     confidence=PY_SEC_001.default_confidence,
                     cwe=PY_SEC_001.cwe,
-                    evidence=f"{name} = ***redacted***",
+                    evidence=redact(name),
                     explanation="Possible hardcoded credential assigned as a literal value.",
                     remediation="Load this value from an environment variable or secret store instead.",
                     evidence_key=name.lower(),
