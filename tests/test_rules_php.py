@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from secureguard.rules.php_rules import find_php_sec_001, find_php_sql_001
+from secureguard.rules.php_rules import find_php_cmd_001, find_php_sec_001, find_php_sql_001
 
 FIXTURES = Path(__file__).parent / "fixtures" / "php"
 
@@ -64,3 +64,22 @@ def test_sql_prepared_statement_not_flagged():
 
 def test_sql_constant_concat_not_flagged():
     assert _findings_for("sql_constant_concat.php", "safe", find_php_sql_001) == []
+
+
+def test_cmd_variable_flagged():
+    findings = _findings_for("cmd_variable.php", "vulnerable", find_php_cmd_001)
+    assert len(findings) == 1
+    assert findings[0].rule_id == "PHP-CMD-001"
+
+
+def test_cmd_concat_flagged():
+    findings = _findings_for("cmd_concat.php", "vulnerable", find_php_cmd_001)
+    assert len(findings) == 1
+
+
+def test_cmd_literal_only_not_flagged():
+    assert _findings_for("cmd_literal_only.php", "safe", find_php_cmd_001) == []
+
+
+def test_cmd_commented_out_not_flagged():
+    assert _findings_for("cmd_commented_out.php", "safe", find_php_cmd_001) == []

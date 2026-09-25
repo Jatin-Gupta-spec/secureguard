@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 
 from secureguard.models import Finding
-from secureguard.rules.catalog import PHP_SEC_001, PHP_SQL_001
+from secureguard.rules.catalog import PHP_CMD_001, PHP_SEC_001, PHP_SQL_001
 
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 _LINE_COMMENT_RE = re.compile(r"(?://|#).*$")
@@ -28,6 +28,11 @@ _SQL_KEYWORD_RE = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE)\b", re.IGNORECASE
 _QUOTED_THEN_CONCAT_RE = re.compile(
     r"(?P<quote>['\"])(?P<text>.*?)(?P=quote)\s*\.\s*(?!\s*['\"])"
 )
+
+_CMD_CALL_RE = re.compile(
+    r"\b(?P<func>system|exec|shell_exec|passthru|popen)\s*\((?P<args>[^)]*)\)"
+)
+_STRING_LITERAL_RE = re.compile(r"(['\"]).*?\1")
 
 
 def _strip_comments(content: str) -> str:
@@ -96,4 +101,33 @@ def find_php_sql_001(content: str, file_path: str) -> list[Finding]:
     return findings
 
 
-PHP_RULES = [find_php_sec_001, find_php_sql_001]
+def find_php_cmd_001(content: str, file_path: str) -> list[Finding]:
+    findings: list[Finding] = []
+    cleaned = _strip_comments(content)
+
+    for line_number, line in enumerate(cleaned.splitlines(), start=1):
+        for match in _CMD_CALL_RE.finditer(line):
+            args = match.group("args")
+            without_strings = _STRING_LITERAL_RE.sub("", args)
+            if "$" not in without_strings:
+                continue  # fully literal argument - safe
+
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line_number=line_number,
+                    rule_id=PHP_CMD_001.rule_id,
+                    severity=PHP_CMD_001.default_severity,
+                    confidence=PHP_CMD_001.default_confidence,
+                    cwe=PHP_CMD_001.cwe,
+                    evidence=match.group(0),
+                    explanation=f"{match.group('func')}() called with a non-literal argument.",
+                    remediation="Avoid shell execution with unsanitized input; validate against an allow-list or use escapeshellarg().",
+                    evidence_key=match.group(0).lower()[:50],
+                )
+            )
+
+    return findings
+
+
+PHP_RULES = [find_php_sec_001, find_php_sql_001, find_php_cmd_001]

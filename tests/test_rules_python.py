@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from secureguard.rules.python_rules import find_py_sec_001, find_py_sql_001
+from secureguard.rules.python_rules import find_py_cmd_001, find_py_sec_001, find_py_sql_001
 
 FIXTURES = Path(__file__).parent / "fixtures" / "python"
 
@@ -64,3 +64,22 @@ def test_sql_parameterized_not_flagged():
 
 def test_sql_literal_only_not_flagged():
     assert _findings_for("sql_literal_only.py", "safe", find_py_sql_001) == []
+
+
+def test_cmd_os_system_variable_flagged():
+    findings = _findings_for("cmd_os_system_variable.py", "vulnerable", find_py_cmd_001)
+    assert len(findings) == 1
+    assert findings[0].rule_id == "PY-CMD-001"
+
+
+def test_cmd_shell_true_flagged():
+    findings = _findings_for("cmd_shell_true.py", "vulnerable", find_py_cmd_001)
+    assert len(findings) == 1
+
+
+def test_cmd_list_form_not_flagged():
+    assert _findings_for("cmd_list_form.py", "safe", find_py_cmd_001) == []
+
+
+def test_cmd_os_system_literal_not_flagged():
+    assert _findings_for("cmd_os_system_literal.py", "safe", find_py_cmd_001) == []

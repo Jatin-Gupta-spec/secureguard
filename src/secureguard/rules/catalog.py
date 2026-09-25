@@ -66,3 +66,30 @@ PY_SQL_001 = RuleMeta(
         "Medium/Low rather than High."
     ),
 )
+
+PHP_CMD_001 = RuleMeta(
+    rule_id="PHP-CMD-001",
+    cwe="CWE-78",
+    default_severity="Medium",
+    default_confidence="Low",
+    rationale=(
+        "A shell-execution function receiving a non-literal argument is a "
+        "classic command-injection shape, but a keyword match alone can't "
+        "prove the value is attacker-controlled - so it stays Medium/Low, "
+        "not High."
+    ),
+)
+
+PY_CMD_001 = RuleMeta(
+    rule_id="PY-CMD-001",
+    cwe="CWE-78",
+    default_severity="Medium",
+    default_confidence="Low",
+    rationale=(
+        "os.system() always shells out, and shell=True explicitly opts "
+        "into shell interpretation - both are risky regardless of the "
+        "specific input, but neither proves the value is attacker-"
+        "controlled, so severity/confidence stay Medium/Low. Safe list-form "
+        "subprocess calls (no shell=True) must never be flagged."
+    ),
+)

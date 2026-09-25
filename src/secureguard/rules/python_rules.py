@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 
 from secureguard.models import Finding
-from secureguard.rules.catalog import PY_SEC_001, PY_SQL_001
+from secureguard.rules.catalog import PY_CMD_001, PY_SEC_001, PY_SQL_001
 
 _TRIPLE_QUOTE_RE = re.compile(r"('''|\"\"\").*?\1", re.DOTALL)
 _LINE_COMMENT_RE = re.compile(r"#.*$")
@@ -28,6 +28,10 @@ _EXECUTE_CALL_RE = re.compile(r"\.(execute|executemany|executescript)\s*\(")
 _SQL_KEYWORD_RE = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE)\b", re.IGNORECASE)
 _FSTRING_RE = re.compile(r"[fF]['\"].*?\{.*?\}.*?['\"]")
 _CONCAT_WITH_VAR_RE = re.compile(r"['\"][^'\"]*['\"]\s*\+\s*\w")
+
+_OS_SYSTEM_RE = re.compile(r"\bos\.system\s*\((?P<args>[^)]*)\)")
+_SHELL_TRUE_RE = re.compile(r"shell\s*=\s*True")
+_STRING_LITERAL_RE = re.compile(r"(['\"]).*?\1")
 
 
 def _strip_comments(content: str) -> str:
@@ -102,4 +106,42 @@ def find_py_sql_001(content: str, file_path: str) -> list[Finding]:
     return findings
 
 
-PY_RULES = [find_py_sec_001, find_py_sql_001]
+def find_py_cmd_001(content: str, file_path: str) -> list[Finding]:
+    findings: list[Finding] = []
+    cleaned = _strip_comments(content)
+
+    for line_number, line in enumerate(cleaned.splitlines(), start=1):
+        evidence = None
+        explanation = None
+
+        os_match = _OS_SYSTEM_RE.search(line)
+        if os_match:
+            without_strings = _STRING_LITERAL_RE.sub("", os_match.group("args"))
+            if without_strings.strip():
+                evidence = os_match.group(0)
+                explanation = "os.system() called with a non-literal argument."
+
+        if evidence is None and _SHELL_TRUE_RE.search(line):
+            evidence = line.strip()
+            explanation = "subprocess call uses shell=True, which enables shell interpretation."
+
+        if evidence is not None:
+            findings.append(
+                Finding(
+                    file_path=file_path,
+                    line_number=line_number,
+                    rule_id=PY_CMD_001.rule_id,
+                    severity=PY_CMD_001.default_severity,
+                    confidence=PY_CMD_001.default_confidence,
+                    cwe=PY_CMD_001.cwe,
+                    evidence=evidence,
+                    explanation=explanation,
+                    remediation="Use subprocess with a list of arguments and shell=False (the default) instead of a shell string.",
+                    evidence_key=evidence.lower()[:50],
+                )
+            )
+
+    return findings
+
+
+PY_RULES = [find_py_sec_001, find_py_sql_001, find_py_cmd_001]
