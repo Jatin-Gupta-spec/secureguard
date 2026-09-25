@@ -83,3 +83,10 @@ def test_cmd_list_form_not_flagged():
 
 def test_cmd_os_system_literal_not_flagged():
     assert _findings_for("cmd_os_system_literal.py", "safe", find_py_cmd_001) == []
+
+def test_string_literal_in_function_call_not_flagged():
+    """Regression test for the Stage 14 self-scan false positive: a string
+    that merely looks like an assignment, sitting as a function call's
+    argument, must never be treated as a real one."""
+    content = 'some_file.write_text(\'password = "hunter2"\', encoding="utf-8")'
+    assert find_py_sec_001(content, "example.py") == []
