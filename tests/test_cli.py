@@ -81,3 +81,31 @@ def test_explain_unknown_rule_returns_two(capsys):
 
 def test_explain_missing_argument_returns_usage_error():
     assert main(["explain"]) == 3
+
+def test_baseline_command_writes_file(tmp_path):
+    sample = tmp_path / "config.php"
+    sample.write_text('$password = "hunter2";', encoding="utf-8")
+    out = tmp_path / "baseline.json"
+
+    exit_code = main(["baseline", str(tmp_path), str(out)])
+
+    assert exit_code == 0
+    assert out.is_file()
+
+
+def test_scan_with_baseline_suppresses_known_finding(tmp_path, capsys):
+    sample = tmp_path / "config.php"
+    sample.write_text('$password = "hunter2";', encoding="utf-8")
+    baseline_file = tmp_path / "baseline.json"
+
+    main(["baseline", str(tmp_path), str(baseline_file)])
+    exit_code = main(["scan", str(tmp_path), "--baseline", str(baseline_file)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "PHP-SEC-001" not in output
+    assert "Scanned 1 file(s)." in output
+
+
+def test_baseline_command_missing_args_returns_usage_error():
+    assert main(["baseline", "somepath"]) == 3
