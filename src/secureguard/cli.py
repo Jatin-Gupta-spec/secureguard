@@ -9,6 +9,7 @@ from secureguard.engine import run_scan
 from secureguard.reporters.json_reporter import format_json
 from secureguard.reporters.terminal import format_rule_explanation, format_summary
 from secureguard.rules.catalog import ALL_RULES
+from secureguard.reporters.html_reporter import format_html
 
 USAGE = (
     "Usage: python -m secureguard scan <path> [--format text|json] [--baseline <file>]\n"
@@ -36,7 +37,7 @@ def _parse_scan_args(args: list[str]):
         else:
             return None
 
-    if output_format not in ("text", "json"):
+    if output_format not in ("text", "json", "html"):
         return None
 
     return target, output_format, baseline_path
@@ -107,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if output_format == "json":
         print(format_json(summary))
+    elif output_format == "html":
+        print(format_html(summary))
     else:
         print(format_summary(summary))
 

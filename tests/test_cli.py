@@ -109,3 +109,14 @@ def test_scan_with_baseline_suppresses_known_finding(tmp_path, capsys):
 
 def test_baseline_command_missing_args_returns_usage_error():
     assert main(["baseline", "somepath"]) == 3
+
+def test_scan_html_format_returns_html(tmp_path, capsys):
+    sample = tmp_path / "sample.py"
+    sample.write_text('password = "hunter2"', encoding="utf-8")
+
+    exit_code = main(["scan", str(tmp_path), "--format", "html"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert output.startswith("<!DOCTYPE html>")
+    assert "PY-SEC-001" in output
