@@ -7,12 +7,22 @@
 # One-time setup per clone:
 #   git config core.hooksPath hooks
 
-OUTPUT=$(python -m secureguard scan src --baseline secureguard-baseline.json --format json)
-COUNT=$(echo "$OUTPUT" | python -c "import json,sys; print(len(json.load(sys.stdin)['findings']))")
+OUTPUT=$(python -m secureguard scan src --baseline secureguard-baseline.json --format json 2>&1)
+SCAN_STATUS=$?
 
-if [ "$COUNT" -gt 0 ]; then
+if [ "$SCAN_STATUS" -ne 0 ]; then
     echo ""
-    echo "SecureGuard: $COUNT new possible security issue(s) found in src/ - commit blocked."
+    echo "SecureGuard: scan failed to run (exit $SCAN_STATUS) - commit blocked as a precaution."
+    echo "$OUTPUT"
+    echo ""
+    exit 1
+fi
+
+COUNT=$(echo "$OUTPUT" | python -c "import json,sys; print(len(json.load(sys.stdin)['findings']))" 2>/dev/null)
+
+if [ -z "$COUNT" ] || [ "$COUNT" -gt 0 ] 2>/dev/null; then
+    echo ""
+    echo "SecureGuard: possible security issue(s) found in src/, or the report could not be parsed - commit blocked."
     echo "Run 'python -m secureguard scan src' to see details."
     echo "If already reviewed and accepted, update the baseline:"
     echo "  python -m secureguard baseline src secureguard-baseline.json"
