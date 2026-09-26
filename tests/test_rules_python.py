@@ -90,3 +90,16 @@ def test_string_literal_in_function_call_not_flagged():
     argument, must never be treated as a real one."""
     content = 'some_file.write_text(\'password = "hunter2"\', encoding="utf-8")'
     assert find_py_sec_001(content, "example.py") == []
+
+def test_line_number_correct_after_multiline_docstring():
+    content = (
+        '"""\n'
+        'A multi-line module docstring.\n'
+        'Second line.\n'
+        '"""\n'
+        'cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")\n'
+    )
+    findings = find_py_sql_001(content, "example.py")
+
+    assert len(findings) == 1
+    assert findings[0].line_number == 5

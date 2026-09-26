@@ -83,3 +83,16 @@ def test_cmd_literal_only_not_flagged():
 
 def test_cmd_commented_out_not_flagged():
     assert _findings_for("cmd_commented_out.php", "safe", find_php_cmd_001) == []
+
+def test_line_number_correct_after_multiline_comment():
+    content = (
+        "<?php\n"
+        "/* A multi-line\n"
+        "   block comment\n"
+        "   spanning lines */\n"
+        "system($cmd);\n"
+    )
+    findings = find_php_cmd_001(content, "example.php")
+
+    assert len(findings) == 1
+    assert findings[0].line_number == 5

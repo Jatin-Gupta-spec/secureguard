@@ -36,8 +36,14 @@ _CMD_CALL_RE = re.compile(
 _STRING_LITERAL_RE = re.compile(r"(['\"]).*?\1")
 
 
+def _blank_multiline(match: re.Match) -> str:
+    """Replace a matched multi-line region with the same number of blank
+    lines, so every line number after it stays correct."""
+    return "\n" * match.group(0).count("\n")
+
+
 def _strip_comments(content: str) -> str:
-    without_blocks = _BLOCK_COMMENT_RE.sub("", content)
+    without_blocks = _BLOCK_COMMENT_RE.sub(_blank_multiline, content)
     lines = [_LINE_COMMENT_RE.sub("", line) for line in without_blocks.splitlines()]
     return "\n".join(lines)
 
