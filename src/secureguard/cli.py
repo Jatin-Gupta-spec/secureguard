@@ -41,7 +41,7 @@ def _parse_scan_args(args: list[str]):
     if output_format not in ("text", "json", "html", "sarif"):
         return None
 
-    if output_format not in ("text", "json", "html"):
+    if output_format not in ("text", "json", "html", "sarif"):
         return None
 
     return target, output_format, baseline_path
