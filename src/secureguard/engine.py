@@ -4,10 +4,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from secureguard.discovery import discover_files
-from secureguard.models import ScanSummary
+from secureguard.models import Finding, ScanSummary
 from secureguard.reader import read_file_safely
 from secureguard.rules.php_rules import PHP_RULES
 from secureguard.rules.python_rules import PY_RULES
+from secureguard.suppressions import filter_suppressed, find_suppressed_lines
 
 _PHP_SUFFIXES = {".php"}
 _PY_SUFFIXES = {".py"}
@@ -51,7 +52,11 @@ def run_scan(target: Path) -> ScanSummary:
         summary.files_scanned += 1
         rel_path = _relative_posix(path, root)
 
+        file_findings: list[Finding] = []
         for rule in _rules_for(path):
-            summary.findings.extend(rule(result.content, rel_path))
+            file_findings.extend(rule(result.content, rel_path))
+
+        suppressed = find_suppressed_lines(result.content)
+        summary.findings.extend(filter_suppressed(file_findings, suppressed))
 
     return summary
