@@ -1,0 +1,23 @@
+#!/bin/sh
+# SecureGuard pre-commit hook.
+# Scans src/ only - tests/fixtures/*/vulnerable/ is intentionally vulnerable
+# and must never be scanned here.
+# Bypass in a real emergency: git commit --no-verify
+#
+# One-time setup per clone:
+#   git config core.hooksPath hooks
+
+OUTPUT=$(python -m secureguard scan src --baseline secureguard-baseline.json --format json)
+COUNT=$(echo "$OUTPUT" | python -c "import json,sys; print(len(json.load(sys.stdin)['findings']))")
+
+if [ "$COUNT" -gt 0 ]; then
+    echo ""
+    echo "SecureGuard: $COUNT new possible security issue(s) found in src/ - commit blocked."
+    echo "Run 'python -m secureguard scan src' to see details."
+    echo "If already reviewed and accepted, update the baseline:"
+    echo "  python -m secureguard baseline src secureguard-baseline.json"
+    echo ""
+    exit 1
+fi
+
+exit 0
