@@ -49,15 +49,6 @@ def test_corpus_wide_precision_and_recall_are_perfect():
     false_negative_files = 0
     false_positive_findings = 0
 
-def test_own_source_has_no_unsuppressed_findings():
-    """SecureGuard's own shipped code (src/) should be clean. If a future
-    change ever reintroduces a self-referential false positive, this test
-    fails immediately - the fix is a suppression comment, not silence."""
-    src_dir = Path(__file__).parent.parent / "src"
-    summary = run_scan(src_dir)
-
-    assert summary.findings == []
-
     for language, ext in (("php", "*.php"), ("python", "*.py")):
         vuln_summary = _scan_dir(language, "vulnerable")
         vuln_count = len(list((FIXTURES / language / "vulnerable").glob(ext)))
@@ -72,4 +63,13 @@ def test_own_source_has_no_unsuppressed_findings():
 
     assert precision == 1.0
     assert recall == 1.0
+
+def test_own_source_has_no_unsuppressed_findings():
+    """SecureGuard's own shipped code (src/) should be clean. If a future
+    change ever reintroduces a self-referential false positive, this test
+    fails immediately - the fix is a suppression comment, not silence."""
+    src_dir = Path(__file__).parent.parent / "src"
+    summary = run_scan(src_dir)
+
+    assert summary.findings == []
 
