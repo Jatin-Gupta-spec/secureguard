@@ -142,7 +142,7 @@ def find_py_cmd_001(content: str, file_path: str) -> list[Finding]:
 
         if evidence is None and _SHELL_TRUE_RE.search(line):
             evidence = line.strip()
-            explanation = "subprocess call uses shell=True, which enables shell interpretation."
+            explanation = "subprocess call uses shell=True, which enables shell interpretation."  # secureguard: ignore[PY-CMD-001]
 
         if evidence is not None:
             findings.append(

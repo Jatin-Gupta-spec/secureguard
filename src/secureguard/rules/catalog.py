@@ -176,19 +176,19 @@ PY_CMD_001 = RuleMeta(
     default_severity="Medium",
     default_confidence="Low",
     rationale=(
-        "os.system() always shells out, and shell=True explicitly opts "
+        "os.system() always shells out, and shell=True explicitly opts "  # secureguard: ignore[PY-CMD-001]
         "into shell interpretation - both are risky regardless of the "
         "specific input, but neither proves the value is attacker-"
         "controlled, so severity/confidence stay Medium/Low. Safe list-form "
-        "subprocess calls (no shell=True) must never be flagged."
+        "subprocess calls (no shell=True) must never be flagged."  # secureguard: ignore[PY-CMD-001]
     ),
     explanation=(
-        "os.system() is called with a non-literal argument, or a "
-        "subprocess call uses shell=True (which enables shell "
-        "interpretation of the command string)."
+    "os.system() is called with a non-literal argument, or a "
+    "subprocess call uses shell=True (which enables shell "  # secureguard: ignore[PY-CMD-001]
+    "interpretation of the command string)."
     ),
     impact=(
-        "If the command or its shell=True string is influenced by user "
+        "If the command or its shell=True string is influenced by user "  # secureguard: ignore[PY-CMD-001]
         "input, an attacker can inject additional shell commands, "
         "potentially gaining arbitrary code execution."
     ),

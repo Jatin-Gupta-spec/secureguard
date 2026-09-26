@@ -62,9 +62,11 @@ decision (AST-based analysis is planned for v0.2+), with real, observable conseq
   setup code) - this eliminates the `tests/test_engine.py` false positive noted in
   the original v0.1 self-scan. PY-SQL-001 and PY-CMD-001, and all three PHP rules,
   remain regex-based for now.
-- **It can even flag its own rule descriptions.** PY-CMD-001's explanation text
-  contains the phrase `shell=True` (because it's *describing* that pattern), which
-  the rule then matches against its own source code.
+- **v0.5 update:** the self-referential PY-CMD-001 findings in `catalog.py` and
+  `python_rules.py` (documentation text describing `shell=True`) are now silenced
+  with explicit `# secureguard: ignore[PY-CMD-001]` comments - a deliberate,
+  visible acknowledgment that these specific matches are known false positives,
+  not a hidden fix. `python -m secureguard scan src` now shows zero findings.
 - For an accurate view of what SecureGuard reports about itself as a *shipped tool*
   (rather than its own tests and documentation), scan `src/` alone:
   `python -m secureguard scan src`
