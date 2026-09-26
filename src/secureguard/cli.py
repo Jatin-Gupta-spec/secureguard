@@ -10,6 +10,7 @@ from secureguard.reporters.json_reporter import format_json
 from secureguard.reporters.terminal import format_rule_explanation, format_summary
 from secureguard.rules.catalog import ALL_RULES
 from secureguard.reporters.html_reporter import format_html
+from secureguard.reporters.sarif_reporter import format_sarif
 
 USAGE = (
     "Usage: python -m secureguard scan <path> [--format text|json] [--baseline <file>]\n"
@@ -36,6 +37,9 @@ def _parse_scan_args(args: list[str]):
             i += 2
         else:
             return None
+
+    if output_format not in ("text", "json", "html", "sarif"):
+        return None
 
     if output_format not in ("text", "json", "html"):
         return None
@@ -110,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
         print(format_json(summary))
     elif output_format == "html":
         print(format_html(summary))
+    elif output_format == "sarif":
+        print(format_sarif(summary))
     else:
         print(format_summary(summary))
 

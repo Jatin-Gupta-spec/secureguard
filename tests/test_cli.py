@@ -120,3 +120,15 @@ def test_scan_html_format_returns_html(tmp_path, capsys):
     assert exit_code == 0
     assert output.startswith("<!DOCTYPE html>")
     assert "PY-SEC-001" in output
+
+
+def test_scan_sarif_format_returns_valid_sarif(tmp_path, capsys):
+    sample = tmp_path / "sample.py"
+    sample.write_text('password = "hunter2"', encoding="utf-8")
+
+    exit_code = main(["scan", str(tmp_path), "--format", "sarif"])
+    output = capsys.readouterr().out
+    parsed = json.loads(output)
+
+    assert exit_code == 0
+    assert parsed["version"] == "2.1.0"
