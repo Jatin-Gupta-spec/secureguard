@@ -6,15 +6,38 @@ from pathlib import Path
 from secureguard.discovery import TooManyFilesError
 from secureguard.engine import run_scan
 from secureguard.reporters.json_reporter import format_json
-from secureguard.reporters.terminal import format_summary
+from secureguard.reporters.terminal import format_rule_explanation, format_summary
+from secureguard.rules.catalog import ALL_RULES
+
+USAGE = (
+    "Usage: python -m secureguard scan <path> [--format text|json]\n"
+    "       python -m secureguard explain <rule-id>"
+)
 
 
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = []
 
-    if len(argv) < 2 or argv[0] != "scan":
-        print("Usage: python -m secureguard scan <path> [--format text|json]")
+    if not argv:
+        print(USAGE)
+        return 3
+
+    command = argv[0]
+
+    if command == "explain":
+        if len(argv) != 2:
+            print(USAGE)
+            return 3
+        rule = ALL_RULES.get(argv[1].upper())
+        if rule is None:
+            print(f"Unknown rule: {argv[1]}")
+            return 2
+        print(format_rule_explanation(rule))
+        return 0
+
+    if command != "scan" or len(argv) < 2:
+        print(USAGE)
         return 3
 
     target = Path(argv[1])
@@ -23,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(argv) == 4 and argv[2] == "--format":
         output_format = argv[3]
     elif len(argv) not in (2, 4):
-        print("Usage: python -m secureguard scan <path> [--format text|json]")
+        print(USAGE)
         return 3
 
     if output_format not in ("text", "json"):

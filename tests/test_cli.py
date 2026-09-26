@@ -58,3 +58,26 @@ def test_scan_json_format_returns_valid_json(tmp_path, capsys):
 
 def test_unknown_format_returns_usage_error(tmp_path):
     assert main(["scan", str(tmp_path), "--format", "xml"]) == 3
+
+def test_explain_known_rule_returns_zero(capsys):
+    exit_code = main(["explain", "PHP-SEC-001"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "PHP-SEC-001" in output
+
+
+def test_explain_lowercase_rule_id_works():
+    assert main(["explain", "php-sec-001"]) == 0
+
+
+def test_explain_unknown_rule_returns_two(capsys):
+    exit_code = main(["explain", "NOT-A-REAL-RULE"])
+    output = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "Unknown rule" in output
+
+
+def test_explain_missing_argument_returns_usage_error():
+    assert main(["explain"]) == 3

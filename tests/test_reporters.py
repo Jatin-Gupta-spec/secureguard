@@ -1,5 +1,6 @@
 from secureguard.models import Finding, ScanSummary
-from secureguard.reporters.terminal import format_summary
+from secureguard.reporters.terminal import format_rule_explanation, format_summary
+from secureguard.rules.catalog import PHP_SEC_001
 
 
 def make_finding(**overrides):
@@ -49,3 +50,13 @@ def test_finding_shows_masked_evidence():
     output = format_summary(summary)
 
     assert "***redacted***" in output
+
+def test_format_rule_explanation_includes_all_sections():
+    output = format_rule_explanation(PHP_SEC_001)
+
+    assert PHP_SEC_001.rule_id in output
+    assert PHP_SEC_001.cwe in output
+    assert PHP_SEC_001.explanation in output
+    assert PHP_SEC_001.impact in output
+    assert PHP_SEC_001.fix in output
+    assert PHP_SEC_001.safe_example in output
