@@ -8,7 +8,7 @@ from secureguard.models import Finding, ScanSummary
 from secureguard.reader import read_file_safely
 from secureguard.rules.php_rules import PHP_RULES
 from secureguard.rules.python_rules import PY_RULES
-from secureguard.suppressions import filter_suppressed, find_suppressed_lines
+from secureguard.suppressions import filter_suppressed, find_php_suppressed_lines, find_python_suppressed_lines
 
 _PHP_SUFFIXES = {".php"}
 _PY_SUFFIXES = {".py"}
@@ -22,6 +22,13 @@ def _rules_for(path: Path) -> list:
         return PY_RULES
     return []
 
+def _suppressed_lines_for(path: Path, content: str) -> dict[int, set[str] | None]:
+    suffix = path.suffix.lower()
+    if suffix in _PY_SUFFIXES:
+        return find_python_suppressed_lines(content)
+    if suffix in _PHP_SUFFIXES:
+        return find_php_suppressed_lines(content)
+    return {}
 
 def _relative_posix(path: Path, root: Path) -> str:
     try:
@@ -56,7 +63,7 @@ def run_scan(target: Path) -> ScanSummary:
         for rule in _rules_for(path):
             file_findings.extend(rule(result.content, rel_path))
 
-        suppressed = find_suppressed_lines(result.content)
+        suppressed = _suppressed_lines_for(path, result.content)
         summary.findings.extend(filter_suppressed(file_findings, suppressed))
 
     return summary
