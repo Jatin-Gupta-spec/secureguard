@@ -104,10 +104,13 @@ def find_py_sql_001(content: str, file_path: str) -> list[Finding]:
     for line_number, line in enumerate(cleaned.splitlines(), start=1):
         if not _EXECUTE_CALL_RE.search(line):
             continue
-        if not _SQL_KEYWORD_RE.search(line):
+        keyword_match = _SQL_KEYWORD_RE.search(line)
+        if not keyword_match:
             continue
         if not (_FSTRING_RE.search(line) or _CONCAT_WITH_VAR_RE.search(line)):
             continue
+
+        verb = keyword_match.group(1).upper()
 
         findings.append(
             Finding(
@@ -117,14 +120,14 @@ def find_py_sql_001(content: str, file_path: str) -> list[Finding]:
                 severity=PY_SQL_001.default_severity,
                 confidence=PY_SQL_001.default_confidence,
                 cwe=PY_SQL_001.cwe,
-                evidence=line.strip(),
+                evidence=f"{verb} query built dynamically and passed to an execute-like call",
                 explanation="Dynamically built SQL string passed to an execute-like call.",
                 remediation=(
                     "Use parameterized queries (pass values separately, e.g. "
                     "cursor.execute(sql, params)) instead of building SQL "
                     "with f-strings or concatenation."
                 ),
-                evidence_key=line.strip().lower()[:50],
+                evidence_key=f"sql-{verb.lower()}",
             )
         )
 
@@ -143,11 +146,11 @@ def find_py_cmd_001(content: str, file_path: str) -> list[Finding]:
         if os_match:
             without_strings = _STRING_LITERAL_RE.sub("", os_match.group("args"))
             if without_strings.strip():
-                evidence = os_match.group(0)
+                evidence = "os.system(<non-literal argument>)"  # secureguard: ignore[PY-CMD-001]
                 explanation = "os.system() called with a non-literal argument."
 
         if evidence is None and _SHELL_TRUE_RE.search(line):
-            evidence = line.strip()
+            evidence = "subprocess call with shell=True"  # secureguard: ignore[PY-CMD-001]
             explanation = "subprocess call uses shell=True, which enables shell interpretation."  # secureguard: ignore[PY-CMD-001]
 
         if evidence is not None:
@@ -162,7 +165,7 @@ def find_py_cmd_001(content: str, file_path: str) -> list[Finding]:
                     evidence=evidence,
                     explanation=explanation,
                     remediation="Use subprocess with a list of arguments and shell=False (the default) instead of a shell string.",
-                    evidence_key=evidence.lower()[:50],
+                    evidence_key="cmd-os-system" if "os.system" in evidence else "cmd-shell-true",
                 )
             )
 

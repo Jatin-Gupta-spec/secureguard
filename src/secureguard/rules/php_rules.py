@@ -87,8 +87,11 @@ def find_php_sql_001(content: str, file_path: str) -> list[Finding]:
     for line_number, line in enumerate(cleaned.splitlines(), start=1):
         for match in _QUOTED_THEN_CONCAT_RE.finditer(line):
             sql_text = match.group("text").strip()
-            if not _SQL_KEYWORD_RE.search(sql_text):
+            keyword_match = _SQL_KEYWORD_RE.search(sql_text)
+            if not keyword_match:
                 continue
+
+            verb = keyword_match.group(1).upper()
 
             findings.append(
                 Finding(
@@ -98,10 +101,10 @@ def find_php_sql_001(content: str, file_path: str) -> list[Finding]:
                     severity=PHP_SQL_001.default_severity,
                     confidence=PHP_SQL_001.default_confidence,
                     cwe=PHP_SQL_001.cwe,
-                    evidence=sql_text,
+                    evidence=f"{verb} query concatenated with a non-literal expression",
                     explanation="SQL string is concatenated with a non-literal expression.",
                     remediation="Use a parameterized query (prepared statement) instead of string concatenation.",
-                    evidence_key=sql_text.lower()[:50],
+                    evidence_key=f"sql-{verb.lower()}",
                 )
             )
 
@@ -119,6 +122,8 @@ def find_php_cmd_001(content: str, file_path: str) -> list[Finding]:
             if "$" not in without_strings:
                 continue  # fully literal argument - safe
 
+            func_name = match.group("func")
+
             findings.append(
                 Finding(
                     file_path=file_path,
@@ -127,10 +132,10 @@ def find_php_cmd_001(content: str, file_path: str) -> list[Finding]:
                     severity=PHP_CMD_001.default_severity,
                     confidence=PHP_CMD_001.default_confidence,
                     cwe=PHP_CMD_001.cwe,
-                    evidence=match.group(0),
-                    explanation=f"{match.group('func')}() called with a non-literal argument.",
+                    evidence=f"{func_name}(<non-literal argument>)",
+                    explanation=f"{func_name}() called with a non-literal argument.",
                     remediation="Avoid shell execution with unsanitized input; validate against an allow-list or use escapeshellarg().",
-                    evidence_key=match.group(0).lower()[:50],
+                    evidence_key=f"cmd-{func_name.lower()}",
                 )
             )
 
