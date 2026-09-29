@@ -1,5 +1,6 @@
 from secureguard.baseline import apply_baseline, load_baseline_fingerprints, write_baseline
 from secureguard.models import Finding, ScanSummary
+from secureguard.engine import run_scan
 
 
 def make_finding(**overrides):
@@ -77,3 +78,30 @@ def test_baseline_file_never_contains_raw_secret(tmp_path):
     write_baseline(summary, out)
 
     assert "hunter2" not in out.read_text(encoding="utf-8")
+
+def test_baseline_does_not_collide_for_same_structural_evidence_different_lines(tmp_path):
+    """The exact scenario audit item 4 is about: two SQL findings in the
+    same file, on different lines, sharing the same STRUCTURAL
+    evidence_key (both "sql-select", since audit item 2 made SQL/CMD
+    evidence non-literal). Baselining one must never silently suppress
+    the other."""
+    php_file = tmp_path / "app.php"
+    php_file.write_text(
+        '<?php\n'
+        '$sql1 = "SELECT * FROM users WHERE id = " . $id;\n'
+        '$sql2 = "SELECT * FROM orders WHERE id = " . $oid;\n',
+        encoding="utf-8",
+    )
+
+    first_scan = run_scan(tmp_path)
+    assert len(first_scan.findings) == 2
+
+    baseline_path = tmp_path / "baseline.json"
+    single_finding_summary = ScanSummary(findings=[first_scan.findings[0]])
+    write_baseline(single_finding_summary, baseline_path)
+
+    known = load_baseline_fingerprints(baseline_path)
+    filtered = apply_baseline(first_scan, known)
+
+    assert len(filtered.findings) == 1
+    assert filtered.findings[0].line_number == first_scan.findings[1].line_number

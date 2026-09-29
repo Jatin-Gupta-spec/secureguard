@@ -54,10 +54,14 @@ def test_fingerprint_is_deterministic():
     assert a.fingerprint == b.fingerprint
 
 
-def test_fingerprint_ignores_line_number():
+def test_fingerprint_includes_line_number():
+    """Reversed from the original design: structural evidence (audit item
+    2) means two different findings on different lines can share the same
+    evidence_key, so line number must be part of identity to avoid one
+    finding's suppression silently also suppressing an unrelated one."""
     a = make_finding(line_number=10)
     b = make_finding(line_number=999)
-    assert a.fingerprint == b.fingerprint
+    assert a.fingerprint != b.fingerprint
 
 
 def test_fingerprint_differs_for_different_rule():

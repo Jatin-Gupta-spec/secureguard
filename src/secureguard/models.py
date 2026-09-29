@@ -24,7 +24,7 @@ class Finding:
     fingerprint: str = field(init=False)  # computed - never passed in
 
     def __post_init__(self) -> None:
-        raw = f"{self.rule_id}|{self.file_path}|{self.evidence_key}"
+        raw = f"1|{self.rule_id}|{self.file_path}|{self.line_number}|{self.evidence_key}"
         digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
         object.__setattr__(self, "fingerprint", digest)
 
