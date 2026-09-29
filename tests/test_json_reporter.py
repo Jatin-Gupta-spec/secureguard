@@ -69,3 +69,36 @@ def test_fingerprint_is_included():
 
     assert "fingerprint" in parsed["findings"][0]
     assert len(parsed["findings"][0]["fingerprint"]) == 16
+
+
+def test_evidence_key_absent_from_json():
+    summary = ScanSummary()
+    summary.findings.append(make_finding())
+
+    parsed = json.loads(format_json(summary))
+
+    assert "evidence_key" not in parsed["findings"][0]
+
+
+def test_only_documented_fields_present():
+    expected_fields = {
+        "file_path", "line_number", "rule_id", "severity", "confidence",
+        "cwe", "evidence", "explanation", "remediation", "fingerprint",
+    }
+    summary = ScanSummary()
+    summary.findings.append(make_finding())
+
+    parsed = json.loads(format_json(summary))
+
+    assert set(parsed["findings"][0].keys()) == expected_fields
+
+
+def test_sort_order_still_deterministic_without_evidence_key():
+    summary = ScanSummary()
+    summary.findings.append(make_finding(file_path="b.py", line_number=1, evidence_key="zzz"))
+    summary.findings.append(make_finding(file_path="a.py", line_number=1, evidence_key="aaa"))
+
+    parsed = json.loads(format_json(summary))
+    paths = [f["file_path"] for f in parsed["findings"]]
+
+    assert paths == ["a.py", "b.py"]
