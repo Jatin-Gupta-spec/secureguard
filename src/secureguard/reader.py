@@ -19,6 +19,26 @@ class ReadResult(NamedTuple):
     skip_reason: str | None  # None on success
 
 
+def _read_bounded(path: Path, limit: int) -> tuple[bytes | None, str | None]:
+    """Read at most `limit` + 1 bytes directly from disk - never the whole
+    file. Returns (data, None) on success, or (None, reason) on failure:
+    "too_large" if the extra byte was present (the file exceeds the
+    limit, even if it grew after an earlier size check), "unreadable" for
+    any OS-level error. Oversized content is never fully read into memory
+    or retained.
+    """
+    try:
+        with path.open("rb") as f:
+            data = f.read(limit + 1)
+    except OSError:
+        return None, "unreadable"
+
+    if len(data) > limit:
+        return None, "too_large"
+
+    return data, None
+
+
 def read_file_safely(path: Path) -> ReadResult:
     if not path.is_file():
         return ReadResult(None, "unreadable")
@@ -31,10 +51,9 @@ def read_file_safely(path: Path) -> ReadResult:
     if size > MAX_FILE_SIZE_BYTES:
         return ReadResult(None, "too_large")
 
-    try:
-        raw = path.read_bytes()
-    except OSError:
-        return ReadResult(None, "unreadable")
+    raw, error = _read_bounded(path, MAX_FILE_SIZE_BYTES)
+    if error is not None:
+        return ReadResult(None, error)
 
     if raw.startswith(UTF16_BOMS):
         try:
@@ -60,4 +79,3 @@ def _decode_non_utf16(raw: bytes) -> str | None:
         return raw.decode("cp1252")
     except UnicodeDecodeError:
         return None
-
